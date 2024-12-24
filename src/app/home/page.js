@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Navbar from "../../Component/Navbar";
+import Navbar from "../../../Component/Navbar";
 import { useSession } from "next-auth/react";
 const Message = ({ message, sender }) => {
   return (
