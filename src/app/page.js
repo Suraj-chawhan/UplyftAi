@@ -1,101 +1,174 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React, { useEffect, useState } from "react";
+import Navbar from "../../Component/Navbar";
+import { useSession } from "next-auth/react";
+const Message = ({ message, sender }) => {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+    <div
+      className={`flex ${
+        sender === "user" ? "justify-end" : "justify-start"
+      } my-2`}
+    >
+      <div
+        className={`px-4 py-2 rounded-lg max-w-xs break-words ${
+          sender === "user"
+            ? "bg-blue-400 text-white"
+            : "bg-gray-300 text-black"
+        }`}
+      >
+        <p>{message}</p>
+      </div>
     </div>
   );
-}
+};
+
+const Chatbot = () => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [history, setHistory] = useState([]);
+  const { data: session, status } = useSession();
+  const [flag, setFlag] = useState(false);
+  const [open, setOpen] = useState(false);
+  const sendMessage = async () => {
+    if (input.trim()) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { message: input, sender: "user" },
+      ]);
+    }
+
+    const res = await fetch("/api/chatbot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: input }),
+    });
+    const data = await res.json();
+    if (data.message) {
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { message: data.message, sender: "bot" },
+      ]);
+
+      const res1 = await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user: input, bot: data.message }),
+      });
+
+      if (res1.ok) {
+        setFlag((v) => !v);
+      }
+    }
+    setInput("");
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      sendMessage();
+    }
+  };
+
+  useEffect(() => {
+    async function call() {
+      try {
+        //add auth
+        const res = await fetch("/api/history");
+        const data = await res.json();
+        if (res.ok) {
+          setHistory(data.message);
+        }
+      } catch (err) {
+        ("Something went wrong");
+      }
+    }
+    call();
+  }, [flag, open]);
+
+  if (status === "loading")
+    return (
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <div style={{ fontSize: "1.5rem", color: "#555" }}>
+          Loading, please wait...
+        </div>
+      </div>
+    );
+  return (
+    <div className="flex flex-col w-full h-[100vh]  ">
+      <Navbar setOpen={setOpen} open={open} />
+      <div className="w-full h-full flex gap-2">
+        <div className="hidden md:block md:h-full w-[30%]  py-4 px-2 bg-gray-500 overflow-auto">
+          {history.length > 0 &&
+            history?.map((val) => (
+              <div
+                key={val.id}
+                className="bg-gray-800 text-white p-4 mb-4 rounded-xl shadow-lg"
+              >
+                <h1 className="font-bold">User: {val.user}</h1>
+                <h1>Chatbot: {val.bot}</h1>
+                <h1 className="text-sm text-gray-400">
+                  Timestamp: {val.createdAt}
+                </h1>
+              </div>
+            ))}
+        </div>
+        {open && (
+          <div className="absolute top-18 left-0 w-full h-screen bg-black bg-opacity-60 z-10 md:hidden">
+            <div className="bg-gray-500 p-6">
+              {history.length > 0 ? (
+                history.map((val) => (
+                  <div
+                    key={val.id}
+                    className="bg-gray-800 text-white p-4 mb-4 rounded-xl shadow-lg"
+                  >
+                    <h1 className="font-bold">User: {val.user}</h1>
+                    <h1>Chatbot: {val.bot}</h1>
+                    <h1 className="text-sm text-gray-400">
+                      Timestamp: {val.createdAt}
+                    </h1>
+                  </div>
+                ))
+              ) : (
+                <p className="text-white">No history available</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col justify-between w-full h-full border border-gray-300 rounded-lg p-4 bg-white shadow-lg">
+          <div className="flex-1 overflow-y-auto p-2">
+            {messages.map((msg, index) => (
+              <Message key={index} message={msg.message} sender={msg.sender} />
+            ))}
+          </div>
+
+          <div className="flex items-center space-x-2 mt-4">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              className="w-full p-3 border border-gray-300 text-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+            <button
+              onClick={sendMessage}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-400 focus:outline-none"
+            >
+              Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Chatbot;
