@@ -89,7 +89,7 @@ function Page() {
               Your AI-powered companion for the future.
             </p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/home")}
               className="px-8 py-4 bg-white  text-black rounded-lg hover:bg-blue-700 transition-all w-[50%] self-center"
             >
               Try ChatBot
