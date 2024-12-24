@@ -18,7 +18,7 @@ function Page() {
   const [Page, setPage] = useState([
     { title: "About", route: "/about" },
     { title: "Contact", route: "/contact" },
-    { title: "Disclaimer", route: "/disclaimer" },
+    { title: "Help", route: "/help" },
   ]);
   useEffect(() => {
     // GSAP Animations for DOM sections
